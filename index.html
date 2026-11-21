@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>Mosca Clock: quantum exposure planner for AI workloads</title>
+  <link rel="stylesheet" href="src/styles.css">
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="site-header">
+    <div class="wrap">
+      <h1>Mosca Clock</h1>
+      <p class="tagline">How long will your AI system's secrets stay secret? A post-quantum migration planner for AI data flows.</p>
+    </div>
+  </header>
+
+  <main id="main" class="wrap">
+    <section class="panel" aria-labelledby="assumptions-h">
+      <h2 id="assumptions-h">1. Assumptions</h2>
+      <p class="muted">Mosca's inequality: if <strong>migration time (x) + shelf life (y) &gt; years until a quantum computer can break today's public-key crypto (z)</strong>, data you protect today is at risk.</p>
+      <div class="assumption-row">
+        <label for="crqc-year">Planning year for a cryptographically relevant quantum computer (CRQC)</label>
+        <input id="crqc-year" type="range" min="2027" max="2050" step="1" value="2035" aria-describedby="crqc-help">
+        <output id="crqc-year-out" for="crqc-year">2035</output>
+      </div>
+      <div class="presets" role="group" aria-label="Presets">
+        <button type="button" data-preset="2030">2030: aggressive</button>
+        <button type="button" data-preset="2035">2035: NIST IR 8547 draft disallow date</button>
+        <button type="button" data-preset="2040">2040: relaxed</button>
+      </div>
+      <p id="crqc-help" class="muted small">Nobody knows this date. It is a planning assumption. Drag it and watch which workloads change status. Current year: <span id="current-year"></span>, so z = <span id="z-out"></span> years.</p>
+    </section>
+
+    <section class="panel" aria-labelledby="inventory-h">
+      <h2 id="inventory-h">2. AI workload inventory</h2>
+      <form id="workload-form" class="grid-form" novalidate>
+        <input type="hidden" id="f-id">
+        <div class="field wide">
+          <label for="f-template">Workload type</label>
+          <select id="f-template"></select>
+          <p id="f-hint" class="muted small"></p>
+        </div>
+        <div class="field wide">
+          <label for="f-name">Name</label>
+          <input id="f-name" type="text" maxlength="120" required placeholder="e.g. Claims documents to fine-tuning job">
+        </div>
+        <div class="field">
+          <label for="f-kex">Key exchange</label>
+          <select id="f-kex"></select>
+        </div>
+        <div class="field">
+          <label for="f-sig">Signature / certificate</label>
+          <select id="f-sig"></select>
+        </div>
+        <div class="field">
+          <label for="f-sym">Bulk encryption</label>
+          <select id="f-sym"></select>
+        </div>
+        <div class="field">
+          <label for="f-y">Shelf life y (years)</label>
+          <input id="f-y" type="number" min="0" max="100" step="1" required>
+        </div>
+        <div class="field">
+          <label for="f-x">Migration time x (years)</label>
+          <input id="f-x" type="number" min="0" max="50" step="0.5" required>
+        </div>
+        <div class="field">
+          <label for="f-sens">Sensitivity</label>
+          <select id="f-sens">
+            <option value="1">1: internal</option>
+            <option value="2">2: confidential</option>
+            <option value="3">3: regulated / crown jewels</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="f-hs">TLS handshakes per day</label>
+          <input id="f-hs" type="number" min="0" step="1">
+        </div>
+        <div class="field checks">
+          <label><input id="f-internet" type="checkbox"> Crosses the public internet</label>
+          <label><input id="f-root" type="checkbox"> Long-lived root of trust (signing key kept 10+ years)</label>
+        </div>
+        <div class="field wide">
+          <label for="f-notes">Notes</label>
+          <input id="f-notes" type="text" maxlength="500">
+        </div>
+        <div class="field wide actions">
+          <button type="submit" id="f-submit" class="primary">Add workload</button>
+          <button type="button" id="f-cancel" hidden>Cancel edit</button>
+          <span id="form-error" class="error" role="alert"></span>
+        </div>
+      </form>
+
+      <div class="toolbar">
+        <button type="button" id="load-sample">Load sample (fictional health system)</button>
+        <button type="button" id="export-json">Export JSON</button>
+        <label class="button-like" for="import-json">Import JSON</label>
+        <input type="file" id="import-json" accept="application/json,.json" class="visually-hidden">
+        <button type="button" id="clear-all" class="danger">Clear all</button>
+      </div>
+      <p id="io-status" class="muted small" role="status"></p>
+    </section>
+
+    <section class="panel" aria-labelledby="results-h">
+      <h2 id="results-h">3. Results</h2>
+      <div id="summary" class="summary" aria-live="polite"></div>
+      <h3>Mosca chart</h3>
+      <p class="muted small">Each bar starts today. <span class="key key-x"></span> migration time x, then <span class="key key-y"></span> shelf life y. The dashed line is the CRQC year. Anything right of the line is exposed.</p>
+      <div id="chart" class="chart" role="img" aria-label="Mosca chart"></div>
+      <h3>Prioritised migration plan</h3>
+      <div id="plan"></div>
+      <div class="toolbar">
+        <button type="button" id="export-md" class="primary">Download report (Markdown)</button>
+      </div>
+    </section>
+
+    <section class="panel" aria-labelledby="method-h">
+      <h2 id="method-h">How the scoring works</h2>
+      <ul class="method">
+        <li><strong>Critical</strong>: key exchange is quantum-vulnerable and y &gt; z. Traffic recorded today will still be secret when a CRQC exists ("harvest now, decrypt later").</li>
+        <li><strong>High</strong>: key exchange is quantum-vulnerable and x + y &gt; z. The Mosca inequality fails.</li>
+        <li><strong>Medium</strong>: within a 2-year margin of failing, or signatures stay classical past the CRQC year (x &gt; z).</li>
+        <li><strong>Low</strong>: vulnerable crypto, but the timeline leaves room.</li>
+        <li><strong>Ready</strong>: everything recorded is quantum-safe.</li>
+      </ul>
+      <p class="muted small">Priority = status weight &times; sensitivity &times; 1.5 if internet-facing, plus years of exposure. Signatures cannot be harvested; they only matter once a CRQC exists. Byte sizes come from FIPS 203, 204 and 205. Everything runs in your browser and is saved only to this browser's local storage.</p>
+    </section>
+  </main>
+
+  <footer class="wrap muted small">
+    Mosca Clock by Manonmayi Vedam. Built for the Creators AI Winter Challenge. Not security advice; a planning aid.
+  </footer>
+
+  <script type="module" src="src/app.js"></script>
+</body>
+</html>

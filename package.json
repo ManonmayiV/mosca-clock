@@ -1,0 +1,13 @@
+{
+  "name": "mosca-clock",
+  "version": "1.0.0",
+  "description": "Post-quantum exposure planner for AI workload data flows, based on Mosca's inequality.",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "start": "python3 -m http.server 8080"
+  },
+  "author": "Manonmayi Vedam",
+  "license": "MIT"
+}
