@@ -89,8 +89,8 @@ HTML, CSS, JavaScript (ES modules), SVG, Node.js test runner, GitHub Pages, AI c
 
 ## Links
 
-- Live demo: [https://<your-github-username>.github.io/mosca-clock/#sample]
-- Source: [https://github.com/<your-github-username>/mosca-clock]
+- Live demo: [https://manonmayiv.github.io/mosca-clock/#sample]
+- Source: [https://github.com/manonmayiv/mosca-clock]
 - Demo video: [YouTube or Loom link]
 
 ## Team
